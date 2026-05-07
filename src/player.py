@@ -1,5 +1,7 @@
 from pygame.sprite import Sprite
 import pygame
+from src import game
+from src.bullet import Bullet
 
 
 class Player(Sprite):
@@ -22,3 +24,9 @@ class Player(Sprite):
             self.rect.x -= self.settings.player_speed
         if keys[pygame.K_RIGHT] and self.rect.right < self.settings.screen_width:
             self.rect.x += self.settings.player_speed
+            
+    def shoot(self):
+        if len(self.game.player_bullets) < self.settings.max_bullets:
+            bullet = Bullet(self.game, self, direction=-1)
+            self.game.all_sprites.add(bullet)
+            self.game.player_bullets.add(bullet)
