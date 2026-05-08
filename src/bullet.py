@@ -8,8 +8,12 @@ class Bullet(Sprite):
         self.game = game
         self.screen = game.screen
         self.settings = game.settings
-        self.image = pygame.Surface((self.settings.bullet_width, self.settings.bullet_height))
-        self.image.fill(self.settings.bullet_color)
+        src = game.player_bullets_image if direction == -1 else game.invader_bullets_image
+        if direction == -1:
+            self.image = pygame.transform.scale(src, (self.settings.player_bullet_width, self.settings.player_bullet_height))
+        else:
+            self.image = pygame.transform.scale(src, (self.settings.invader_bullet_width, self.settings.invader_bullet_height))
+        self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect()
         self.rect.centerx = owner.rect.centerx
         if direction == -1:  # player bullet
