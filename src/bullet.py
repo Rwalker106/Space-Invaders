@@ -3,7 +3,7 @@ import pygame
 
 
 class Bullet(Sprite):
-    def __init__(self, game, owner, direction=-1):
+    def __init__(self, game, owner, direction=-1, dx=0, dy=None):
         super().__init__()
         self.game = game
         self.screen = game.screen
@@ -24,8 +24,17 @@ class Bullet(Sprite):
         self.speed = self.settings.bullet_speed
         self.direction = direction  # -1 for up, 1 for down (invader bullets)
         
+        self.x = float(self.rect.x)
+        self.y = float(self.rect.y)
+        self.dx = dx
+        self.dy = dy if dy is not None else self.direction * self.speed
+        
     def update(self):
-        self.rect.y += self.direction * self.speed
-        if self.rect.bottom < 0 or self.rect.top > self.settings.screen_height:
+        self.x += self.dx
+        self.y += self.dy
+        self.rect.x = int(self.x)
+        self.rect.y = int(self.y)
+        
+        if self.rect.bottom < 0 or self.rect.top > self.settings.screen_height or self.rect.right < 0 or self.rect.left > self.settings.screen_width:
             self.kill()
             

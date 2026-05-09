@@ -42,3 +42,32 @@ class Settings:
         self.ufo_height = 32
         self.ufo_light_width = 80
         self.ufo_light_height = 80
+
+        # PowerUp settings
+        self.powerup_drop_speed = 2
+        self.multi_shot_duration = 10 # seconds
+        self.max_lives = 5
+        
+        # Level settings
+        self.max_levels = 30
+        
+        # High Score
+        self.high_score = self.load_high_score()
+
+    def load_high_score(self):
+        try:
+            import json
+            with open("highscore.json", "r") as f:
+                return json.load(f).get("high_score", 0)
+        except (FileNotFoundError, json.JSONDecodeError):
+            return 0
+
+    def save_high_score(self, score):
+        if score > self.high_score:
+            self.high_score = score
+            try:
+                import json
+                with open("highscore.json", "w") as f:
+                    json.dump({"high_score": self.high_score}, f)
+            except IOError:
+                pass

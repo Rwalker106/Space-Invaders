@@ -25,11 +25,41 @@ class UFO(Sprite):
 
         
     def update(self):
+        if getattr(self, 'hit', False):
+            self.explode_timer -= 1 / self.game.settings.fps
+            if self.explode_timer <= 0:
+                self.game.ufo_hit_sfx.play() # explosion.wav
+                self.game.particle_system.create_explosion(self.rect.centerx, self.rect.top + self.settings.ufo_height//2, (255, 255, 255), 15)
+                self.kill()
+            return
+            
         # Ufo will make two passes across the screen before disappearing
         self.rect.x += self.direction * self.settings.ufo_speed
         self.time_alive += 1 / self.game.settings.fps
         if self.rect.right < 0 or self.rect.left > self.settings.screen_width:
             self.kill()  # Remove UFO if it goes off screen after two passes
+            
+    def take_hit(self):
+        if getattr(self, 'hit', False): return
+        self.hit = True
+        self.explode_timer = 1.0 # Wait 1 second before exploding
+        self.showing_light = True
+        self.direction = 0 # Stop moving
+        
+        # Combine UFO image and light image
+        new_height = self.settings.ufo_height + self.settings.ufo_light_height
+        new_image = pygame.Surface((self.settings.ufo_width, new_height), pygame.SRCALPHA)
+        new_image.blit(self.image, (0, 0))
+        # Draw light extending downwards
+        new_image.blit(self.light_image, (self.settings.ufo_width//2 - self.settings.ufo_light_width//2, self.settings.ufo_height))
+        self.image = new_image
+        
+        # Keep the top at the same position, so the light extends downwards
+        old_centerx = self.rect.centerx
+        old_top = self.rect.top
+        self.rect = self.image.get_rect()
+        self.rect.centerx = old_centerx
+        self.rect.top = old_top
             
     def get_points(self):
         if self.time_alive < 2: return 200

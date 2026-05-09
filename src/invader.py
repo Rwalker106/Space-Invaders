@@ -19,12 +19,29 @@ class Invader(Sprite):
         self.rect.x = 40 + col * (self.rect.width + 10)
         self.rect.y = 30 + row * (self.rect.height + 10)
         
+        # Armored mechanics
+        self.health = 1
+        if hasattr(self.game, 'current_level') and self.game.current_level >= 5 and row == 0:
+            self.health = 3
+            # Slightly tint the armored invaders
+            for surface in self.frames:
+                surface.fill((100, 100, 100), special_flags=pygame.BLEND_RGB_ADD)
+        
         
     def animate(self):
         self.current_frame = 1 - self.current_frame
         self.image = self.frames[self.current_frame]
-        
-    
+
+    def update(self):
+        if getattr(self, 'diving', False):
+            if hasattr(self.game, 'player') and self.game.player is not None:
+                dx = self.game.player.rect.centerx - self.rect.centerx
+                # Focus downward movement mainly
+                self.rect.x += (1 if dx > 0 else -1) * self.game.settings.invader_speed * 1.5
+            self.rect.y += self.game.settings.invader_drop_speed * 4
+            
+            if self.rect.top > self.game.settings.screen_height:
+                self.kill()
 class InvaderFleet:
     def __init__(self, game, frames: list | None = None) -> None:
         self.game = game
@@ -51,26 +68,41 @@ class InvaderFleet:
                 self.invaders.add(invader)
                 
     def update(self):
+        if not self.invaders:
+            return
         for invader in self.invaders:
-            invader.rect.x += self.direction * self.fleet_speed
+            invader.update() # Update individual invaders (e.g. for dive bomber)
+            if not getattr(invader, 'diving', False):
+                invader.rect.x += self.direction * self.fleet_speed
         self.animation_timer -= 1 / self.game.settings.fps
         if self.animation_timer <= 0:
             self.animation_timer = self.animation_interval
             for invader in self.invaders:
                 invader.animate()
-        if self._check_edges():
+        
+        # Only check edges for non-diving invaders
+        formation_invaders = [inv for inv in self.invaders if not getattr(inv, 'diving', False)]
+        if not formation_invaders:
+            return
+            
+        edge_hit = False
+        for invader in formation_invaders:
+            if invader.rect.right >= self.game.settings.screen_width or invader.rect.left <= 0:
+                edge_hit = True
+                break
+                
+        if edge_hit:
             self.direction *= -1
-            sprites = self.invaders.sprites()
-            max_right = max(s.rect.right for s in sprites)
-            min_left = min(s.rect.left for s in sprites)
+            max_right = max(s.rect.right for s in formation_invaders)
+            min_left = min(s.rect.left for s in formation_invaders)
             if max_right > self.game.settings.screen_width:
                 correction = max_right - self.game.settings.screen_width
-                for invader in self.invaders:
+                for invader in formation_invaders:
                     invader.rect.x -= correction
             elif min_left < 0:
-                for invader in self.invaders:
+                for invader in formation_invaders:
                     invader.rect.x -= min_left
-            for invader in self.invaders:
+            for invader in formation_invaders:
                 invader.rect.y += self.fleet_drop_speed
         remaining_invaders = len(self.invaders)
         total = self.game.settings.fleet_rows * self.game.settings.fleet_cols
