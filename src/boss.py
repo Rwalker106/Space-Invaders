@@ -1,6 +1,7 @@
 import pygame
 import random
 from src.bullet import Bullet
+from src.utils import resource_path
 
 class Boss(pygame.sprite.Sprite):
     def __init__(self, game, level):
@@ -17,7 +18,7 @@ class Boss(pygame.sprite.Sprite):
         
         # Load boss image based on level
         boss_index = ((level // 5) - 1) % 6 + 1
-        image_path = f"assets/images/boss_{boss_index}.png"
+        image_path = resource_path(f"assets/images/boss_{boss_index}.png")
         try:
             loaded_image = pygame.image.load(image_path).convert_alpha()
             # Scale it to a reasonable boss size if needed

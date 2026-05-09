@@ -10,6 +10,7 @@ from src.hud import HUD
 from src.powerup import PowerUp
 from src.boss import Boss
 from src.particle import ParticleSystem
+from src.utils import resource_path
 import random
 
 
@@ -30,27 +31,27 @@ class SI_Game:
 
         # --- images (load once at startup) ---
         # Backgrounds are now generated as dynamic Starfield
-        self.player_bullets_image = pygame.image.load("assets/images/player_bullet1.png").convert_alpha()
-        self.invader_bullets_image = pygame.image.load("assets/images/invader_bullet1.png").convert_alpha()
-        
-        self.ufo_image = pygame.image.load("assets/images/ufo.png").convert_alpha()
-        self.ufo_light_image = pygame.image.load("assets/images/ufo_light.png").convert_alpha()
+        self.player_bullets_image = pygame.image.load(resource_path("assets/images/player_bullet1.png")).convert_alpha()
+        self.invader_bullets_image = pygame.image.load(resource_path("assets/images/invader_bullet1.png")).convert_alpha()
+
+        self.ufo_image = pygame.image.load(resource_path("assets/images/ufo.png")).convert_alpha()
+        self.ufo_light_image = pygame.image.load(resource_path("assets/images/ufo_light.png")).convert_alpha()
 
 
         # --- audio ---
         pygame.mixer.init()
-        self.shoot_sfx = pygame.mixer.Sound("assets/sounds/shoot.wav")
-        self.player_hit_sfx = pygame.mixer.Sound("assets/sounds/player_hit.wav")
-        self.invader_killed_sfx = pygame.mixer.Sound("assets/sounds/invaderkilled.wav")
-        self.invader_shoot_sfx = pygame.mixer.Sound("assets/sounds/invaders_shoot.wav")
+        self.shoot_sfx = pygame.mixer.Sound(resource_path("assets/sounds/shoot.wav"))
+        self.player_hit_sfx = pygame.mixer.Sound(resource_path("assets/sounds/player_hit.wav"))
+        self.invader_killed_sfx = pygame.mixer.Sound(resource_path("assets/sounds/invaderkilled.wav"))
+        self.invader_shoot_sfx = pygame.mixer.Sound(resource_path("assets/sounds/invaders_shoot.wav"))
         self.current_music = None
         self.music_linger_timer = None
         
         # UFO audio effects
         self.ufo_channel = pygame.mixer.Channel(5)  # Dedicated channel for UFO sounds
-        self.ufo_sfx = pygame.mixer.Sound("assets/sounds/ufo-beep-1084.wav")
-        self.ufo_hit_sfx = pygame.mixer.Sound("assets/sounds/explosion.wav")
-        self.ufo_powerup_sfx = pygame.mixer.Sound("assets/sounds/power-up-drop.wav")
+        self.ufo_sfx = pygame.mixer.Sound(resource_path("assets/sounds/ufo-beep-1084.wav"))
+        self.ufo_hit_sfx = pygame.mixer.Sound(resource_path("assets/sounds/explosion.wav"))
+        self.ufo_powerup_sfx = pygame.mixer.Sound(resource_path("assets/sounds/power-up-drop.wav"))
 
         # --- game state ---
         self.state = "start"
@@ -127,12 +128,12 @@ class SI_Game:
         self._load_user_settings()
         
         self.player_ship_imgs = [
-            pygame.transform.scale(pygame.image.load(path), (50, 40))
+            pygame.transform.scale(pygame.image.load(resource_path(path)), (50, 40))
             for path in self.options["player ship"]["images"]
         ]
         self.invader_ship_imgs = [
-            [(pygame.transform.scale(pygame.image.load(p[0]).convert_alpha(), (40, 30)),
-              pygame.transform.scale(pygame.image.load(p[1]).convert_alpha(), (40, 30)))
+            [(pygame.transform.scale(pygame.image.load(resource_path(p[0])).convert_alpha(), (40, 30)),
+              pygame.transform.scale(pygame.image.load(resource_path(p[1])).convert_alpha(), (40, 30)))
              for p in theme]
             for theme in self.options["invader ship"]["images"]
         ]
@@ -594,7 +595,7 @@ class SI_Game:
     def _play_music(self, filename, loop=-1):
         if self.current_music != filename:
             self.current_music = filename
-            pygame.mixer.music.load(f"assets/sounds/{filename}")
+            pygame.mixer.music.load(resource_path(f"assets/sounds/{filename}"))
             pygame.mixer.music.play(loop)
 
         

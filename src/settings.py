@@ -1,4 +1,5 @@
 from random import choice
+from src.utils import user_data_path
 
 class Settings:
     def __init__(self):
@@ -57,7 +58,7 @@ class Settings:
     def load_high_score(self):
         try:
             import json
-            with open("highscore.json", "r") as f:
+            with open(user_data_path("highscore.json"), "r") as f:
                 return json.load(f).get("high_score", 0)
         except (FileNotFoundError, json.JSONDecodeError):
             return 0
@@ -67,7 +68,7 @@ class Settings:
             self.high_score = score
             try:
                 import json
-                with open("highscore.json", "w") as f:
+                with open(user_data_path("highscore.json"), "w") as f:
                     json.dump({"high_score": self.high_score}, f)
             except IOError:
                 pass

@@ -1,5 +1,6 @@
 from pygame.sprite import Sprite
-import pygame        
+import pygame
+from src.utils import resource_path
 
 
 class Barrier(Sprite):
@@ -7,7 +8,7 @@ class Barrier(Sprite):
         super().__init__()
         self.game = game
         self.settings = game.settings
-        self.image = pygame.image.load("assets/images/barrier.png").convert_alpha()
+        self.image = pygame.image.load(resource_path("assets/images/barrier.png")).convert_alpha()
         self.image = pygame.transform.scale(self.image, (self.settings.barrier_width, self.settings.barrier_height))
         self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect()
