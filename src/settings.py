@@ -35,3 +35,10 @@ class Settings:
         self.barrier_health = 3
         self.barrier_count = 4 # Number of barriers to create
         self.speed_cap = 2.0
+        
+        # UFO settings
+        self.ufo_speed = 3    
+        self.ufo_width = 80
+        self.ufo_height = 32
+        self.ufo_light_width = 80
+        self.ufo_light_height = 80

@@ -94,6 +94,8 @@ class InvaderFleet:
         return False
     
     def shoot(self):
+        if not self.invaders:
+            return
         shooter = random.choice(self.invaders.sprites())
         bullet = Bullet(self.game, shooter, direction=1)
         self.game.all_sprites.add(bullet)

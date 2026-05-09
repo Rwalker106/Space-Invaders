@@ -4,6 +4,7 @@ from src.player import Player
 from src.invader import InvaderFleet
 from src.barrier import Barrier
 from src.starfield import Starfield
+from src.ufo import UFO
 from src.hud import HUD
 import random
 
@@ -12,7 +13,7 @@ import random
 class SI_Game:
     """Overall class to manage the game"""
     def __init__(self):
-        """Initialize the game and create game resources."""
+        # --- pygame core ---
         pygame.init()
         self.settings = Settings()
         self.screen_width = self.settings.screen_width
@@ -21,92 +22,114 @@ class SI_Game:
         pygame.display.set_caption(self.settings.title)
         self.clock = pygame.time.Clock()
         self.running = True
-        # Background Image
-        self.background_image = pygame.image.load(
-            "assets/images/space_bg.png").convert_alpha()
-        self.background_image = pygame.transform.scale(self.background_image, (self.screen_width, self.screen_height))
-        self.game_over_bg = pygame.image.load("assets/images/game_over_press_enter.png").convert_alpha()
-        self.game_over_bg = pygame.transform.scale(self.game_over_bg, (self.screen_width, self.screen_height))
+
+        # --- images (load once at startup) ---
+        self.background_image = pygame.transform.scale(
+            pygame.image.load("assets/images/space_bg.png").convert_alpha(),
+            (self.screen_width, self.screen_height))
+        self.game_over_bg = pygame.transform.scale(
+            pygame.image.load("assets/images/game_over_press_enter.png").convert_alpha(),
+            (self.screen_width, self.screen_height))
         self.player_bullets_image = pygame.image.load("assets/images/player_bullet1.png").convert_alpha()
         self.invader_bullets_image = pygame.image.load("assets/images/invader_bullet1.png").convert_alpha()
-        self.player = Player(self)  
-        self.lives = self.settings.player_lives
-        self.score = self.settings.starting_score
-        self.all_sprites = pygame.sprite.Group()
-        self.player_bullets = pygame.sprite.Group()
-        self.invader_bullets = pygame.sprite.Group()
-        self.invader_fleet = InvaderFleet(self, frames=None) 
-        self.all_sprites.add(self.player) # player and bullets. Bullets area added when shot.
-        self.cued_to_shoot = False
-        self.count_down = 0
-        self.barriers = []
-        self.hud = HUD(self)
-        self.state = "start"
-        self.plyr_is_hit = False
-        self.player_is_hit_timer = 0
-        self.player_is_hit_duration = 2 # seconds
-        self.selected_difficulty = "Medium" # default difficulty setting
-        self.selected_option = 0
-        self.starfield = Starfield(self.screen_width, self.screen_height)
-        self.options = {
-            "Difficulty": {
-                "choices": ["Easy", "Medium", "Hard"], "selected": 1}, 
-            "player ship": {"choices": ["Cool Pixel", "Blue Bubble", "Wide Red", "Pink Pill"],  
-            "images":["assets/images/Cool Pixel Spaceship.png", 
-                  "assets/images/Blue Bubble.png", 
-                  "assets/images/wide_red.png", 
-                  "assets/images/pink_pill.png"],
-            "selected": 0
-            },
-            "invader ship": 
-                {"choices": 
-                    ["Theme 1", "Theme 2", "Theme 3"],
-                 "images": [ # Theme 1
-                        [("assets/images/theme1_invader1_a.png","assets/images/theme1_invader1_b.png"),
-                         ("assets/images/theme1_invader2_a.png","assets/images/theme1_invader2_b.png"),
-                         ("assets/images/theme1_invader3_a.png","assets/images/theme1_invader3_b.png"),
-                         ("assets/images/theme1_invader4_a.png","assets/images/theme1_invader4_b.png")], 
-                         # Theme 2
-                         [("assets/images/theme2_invader1_a.png", "assets/images/theme2_invader1_b.png"),
-                         ("assets/images/theme2_invader2_a.png","assets/images/theme2_invader2_b.png"),
-                         ("assets/images/theme2_invader3_a.png","assets/images/theme2_invader3_b.png"),
-                         ("assets/images/theme2_invader4_a.png","assets/images/theme2_invader4_b.png")],
-                         # Theme 3
-                        [("assets/images/theme3_invader1_a.png", "assets/images/theme3_invader1_b.png"),
-                        ("assets/images/theme3_invader2_a.png","assets/images/theme3_invader2_b.png"),
-                        ("assets/images/theme3_invader3_a.png","assets/images/theme3_invader3_b.png"),
-                        ("assets/images/theme3_invader4_a.png","assets/images/theme3_invader4_b.png")
-                        ]
-                        ],
-                    "selected": 0}, 
-            "music": {
-                "choices": ["game_theme_1.ogg",
-                            "game_theme_2.ogg",
-                            "game_theme_3.ogg",
-                            "game_theme_4.ogg"],
-                "selected": 0}, 
-            "Volume": {"choices": list(range(0, 101)), "selected": 50}}
-        self.player_ship_imgs = [
-            pygame.transform.scale(pygame.image.load(path), (50, 40))
-            for path in self.options["player ship"]["images"]
-        ]
-        self.invader_ship_imgs = [
-            [ #for each theme 
-             ( # for each pair of invader frames
-                pygame.transform.scale(pygame.image.load(p[0]).convert_alpha(), (40, 30)),
-                pygame.transform.scale(pygame.image.load(p[1]).convert_alpha(), (40, 30)),
-            ) for p in theme
-             ]
-            for theme in self.options["invader ship"]["images"]
-        ]
-        #audio setup
+        
+        self.ufo_image = pygame.image.load("assets/images/ufo.png").convert_alpha()
+        self.ufo_light_image = pygame.image.load("assets/images/ufo_light.png").convert_alpha()
+
+
+        # --- audio ---
         pygame.mixer.init()
         self.shoot_sfx = pygame.mixer.Sound("assets/sounds/shoot.wav")
         self.player_hit_sfx = pygame.mixer.Sound("assets/sounds/player_hit.wav")
         self.invader_killed_sfx = pygame.mixer.Sound("assets/sounds/invaderkilled.wav")
         self.invader_shoot_sfx = pygame.mixer.Sound("assets/sounds/invaders_shoot.wav")
         self.current_music = None
-        self.music_linger_timer = None  # None=not on music row, >0=counting down, -1=already previewing
+        self.music_linger_timer = None
+        
+        # UFO audio effects
+        self.ufo_channel = pygame.mixer.Channel(5)  # Dedicated channel for UFO sounds
+        self.ufo_sfx = pygame.mixer.Sound("assets/sounds/ufo-beep-1084.wav")
+        self.ufo_hit_sfx = pygame.mixer.Sound("assets/sounds/explosion.wav")
+        self.ufo_powerup_sfx = pygame.mixer.Sound("assets/sounds/power-up-drop.wav")
+
+        # --- game state ---
+        self.state = "start"
+        self.score = self.settings.starting_score
+        self.lives = self.settings.player_lives
+        
+
+        self.plyr_is_hit = False
+        self.player_is_hit_timer = 0
+        self.player_is_hit_duration = 2
+        self.cued_to_shoot = False
+        self.count_down = 0
+
+
+        # --- sprite groups ---
+        self.all_sprites = pygame.sprite.Group()
+        self.player_bullets = pygame.sprite.Group()
+        self.invader_bullets = pygame.sprite.Group()
+
+        # --- game objects ---
+        self.player = Player(self)
+        self.all_sprites.add(self.player)
+        self.invader_fleet = InvaderFleet(self, frames=None)
+        self.barriers = []
+        self.hud = HUD(self)
+        self.starfield = Starfield(self.screen_width, self.screen_height)
+
+        # --- settings menu ---
+        self.selected_difficulty = "Medium"
+        self.selected_option = 0
+        self.options = {
+            "Difficulty": {
+                "choices": ["Easy", "Medium", "Hard"], "selected": 1},
+            "player ship": {
+                "choices": ["Cool Pixel", "Blue Bubble", "Wide Red", "Pink Pill"],
+                "images": ["assets/images/Cool Pixel Spaceship.png",
+                           "assets/images/Blue Bubble.png",
+                           "assets/images/wide_red.png",
+                           "assets/images/pink_pill.png"],
+                "selected": 0},
+            "invader ship": {
+                "choices": ["Theme 1", "Theme 2", "Theme 3"],
+                "images": [
+                    [("assets/images/theme1_invader1_a.png", "assets/images/theme1_invader1_b.png"),
+                     ("assets/images/theme1_invader2_a.png", "assets/images/theme1_invader2_b.png"),
+                     ("assets/images/theme1_invader3_a.png", "assets/images/theme1_invader3_b.png"),
+                     ("assets/images/theme1_invader4_a.png", "assets/images/theme1_invader4_b.png")],
+                    [("assets/images/theme2_invader1_a.png", "assets/images/theme2_invader1_b.png"),
+                     ("assets/images/theme2_invader2_a.png", "assets/images/theme2_invader2_b.png"),
+                     ("assets/images/theme2_invader3_a.png", "assets/images/theme2_invader3_b.png"),
+                     ("assets/images/theme2_invader4_a.png", "assets/images/theme2_invader4_b.png")],
+                    [("assets/images/theme3_invader1_a.png", "assets/images/theme3_invader1_b.png"),
+                     ("assets/images/theme3_invader2_a.png", "assets/images/theme3_invader2_b.png"),
+                     ("assets/images/theme3_invader3_a.png", "assets/images/theme3_invader3_b.png"),
+                     ("assets/images/theme3_invader4_a.png", "assets/images/theme3_invader4_b.png")]],
+                "selected": 0},
+            "music": {
+                "choices": ["game_theme_1.ogg", "game_theme_2.ogg",
+                            "game_theme_3.ogg", "game_theme_4.ogg"],
+                "selected": 0},
+            "Volume": {"choices": list(range(0, 101)), "selected": 50}}
+        self.player_ship_imgs = [
+            pygame.transform.scale(pygame.image.load(path), (50, 40))
+            for path in self.options["player ship"]["images"]
+        ]
+        self.invader_ship_imgs = [
+            [(pygame.transform.scale(pygame.image.load(p[0]).convert_alpha(), (40, 30)),
+              pygame.transform.scale(pygame.image.load(p[1]).convert_alpha(), (40, 30)))
+             for p in theme]
+            for theme in self.options["invader ship"]["images"]
+        ]
+       
+        
+        # Ufo settings
+        self.ufo = None # No UFO active at start.
+        self.ufo_timer = 0
+        self.ufo_interval = random.randint(20, 40)  # Random interval between UFO appearances
+        
+#######################CODE STARTS HERE#########################################
 
     def run(self):
         """Start the main loop for the game."""
@@ -246,8 +269,17 @@ class SI_Game:
         music_selected_idx = self.options["music"]["selected"]
         track = self.options["music"]["choices"][music_selected_idx]
         self._play_music(track)
-        self.player_bullets.empty() # clear bullets
-        self.invader_bullets.empty()    
+        if self.ufo is not None:
+            self.ufo.kill()
+            self.ufo = None
+            self.ufo_channel.stop()
+        self.ufo_timer = 0
+        self.cued_to_shoot = False
+        self.count_down = 0
+        for b in list(self.player_bullets) + list(self.invader_bullets):
+            b.kill()
+        self.player_bullets.empty()
+        self.invader_bullets.empty()
         self.state = "playing"
 
             
@@ -288,7 +320,16 @@ class SI_Game:
         for barrier in self.barriers:
             for inv in pygame.sprite.spritecollide(barrier, self.invader_fleet.invaders, False):
                 barrier.take_hit(inv.rect.centerx, inv.rect.bottom)
-                
+        
+        # Check player hits UFO
+        if self.ufo:
+            ufo_hits = pygame.sprite.spritecollide(self.ufo, self.player_bullets, True)
+            if ufo_hits:
+                self.score += self.ufo.get_points()
+                self.ufo_hit_sfx.play() # play UFO hit sound effect
+                self.ufo.kill()
+                self.ufo = None
+                self.ufo_channel.stop()
 
     def _invader_shoot(self):
         if len(self.invader_fleet.invaders) > 0 and not self.cued_to_shoot:
@@ -302,6 +343,21 @@ class SI_Game:
                 self.cued_to_shoot = False
 
                 
+    def _tick_ufo(self):
+        if self.ufo is not None and not self.ufo.alive():
+            self.ufo_channel.stop()
+            self.ufo = None
+        if self.ufo is None:
+            self.ufo_timer += 1 / self.settings.fps
+            if self.ufo_timer >= self.ufo_interval:
+                self.ufo = UFO(self, image=self.ufo_image, light_image=self.ufo_light_image)
+                self.all_sprites.add(self.ufo)
+                self.ufo_channel.play(self.ufo_sfx, loops=-1)
+                self.ufo_timer = 0
+                self.ufo_interval = random.randint(20, 40)
+        if self.ufo is not None:
+            self.ufo.update()
+
     def _create_barriers(self):
         num_barriers = self.settings.barrier_count
         gap = self.screen_width // num_barriers
@@ -436,7 +492,7 @@ class SI_Game:
                 if option == "player ship":
                     img = self.player_ship_imgs[self.options[option]["selected"]]
                 else:
-                    img = self.invader_ship_imgs[self.options[option]["selected"]][0]
+                    img = self.invader_ship_imgs[self.options[option]["selected"]][0][0]
                 label = font.render(f"{option}: {current_value}", True, color)
                 x = self.screen_width // 2 - (img.get_width() + 10 + label.get_width()) // 2
                 y = self.screen_height // 2 + i * 40
@@ -483,7 +539,9 @@ class SI_Game:
         self.player_bullets.update()
         self.invader_bullets.update()
         self.invader_fleet.update()
-        
+        self._tick_ufo()
+            
+            
     
     def _draw(self):
         self.screen.blit(self.background_image, (0, 0))
@@ -491,20 +549,5 @@ class SI_Game:
         self.invader_fleet.invaders.draw(self.screen) # invaders
         self.hud.draw()
         
+        
         pygame.display.flip()
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
